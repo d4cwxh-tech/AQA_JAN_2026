@@ -1,4 +1,6 @@
-Feature: Тестирование API
+Feature: Проверка цен на Allo
 
-  Scenario: Проверка доступности сервера
-    Given я отправляю GET запрос на "https://jsonplaceholder.typicode.com"
+  Scenario: Синхронизация цен iPhone с базой данных
+    Given я открываю сайт "https://allo.ua"
+    When я ищу "iphone" и сохраняю цены первых 3 товаров
+    Then я проверяю цены в БД: если модель есть - сверяю цену, если нет - записываю
