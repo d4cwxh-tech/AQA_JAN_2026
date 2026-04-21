@@ -1,86 +1,59 @@
 package pages;
 
-import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SearchResultPage {
 
-    private final WebDriver driver;
-    private final WebDriverWait wait;
+    private WebDriver driver;
 
     public SearchResultPage(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
-    public List<WebElement> getProductCards() {
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[data-product-id], .product-item, .product-card")
-        ));
+    public List<String> getFirstPrices(int count) {
+        List<String> prices = new ArrayList<>();
 
-        return driver.findElements(
-                By.cssSelector("[data-product-id], .product-item, .product-card")
-        );
-    }
+        List<WebElement> items = driver.findElements(By.cssSelector("div.product-card"));
 
-    public String getTitle(WebElement card) {
-        return safeText(card,
-                ".product-item__title",
-                ".product-card__title",
-                "a[title]"
-        );
-    }
+        for (WebElement item : items) {
 
-    public String getPrice(WebElement card) {
-        return safeText(card,
-                ".sum",
-                ".price",
-                "[data-price]"
-        );
-    }
-
-    public List<Integer> extractPrices(int limit) {
-        List<Integer> prices = new ArrayList<>();
-
-        List<WebElement> cards = getProductCards();
-
-        for (WebElement card : cards) {
-            if (prices.size() >= limit) break;
+            if (prices.size() >= count) break;
 
             try {
-                String priceText = getPrice(card);
-                int price = parsePrice(priceText);
+                String title = safeGetText(item,
+                        By.cssSelector("a.product-card__title"),
+                        By.xpath(".//a[contains(@class,'title')]")
+                );
 
-                if (price > 0) {
-                    prices.add(price);
+                String price = safeGetText(item,
+                        By.cssSelector(".v-pb__cur"),
+                        By.xpath(".//*[contains(text(),'₴')]")
+                );
+
+                if (!title.isEmpty() && !price.isEmpty()) {
+                    prices.add(title + " | " + price);
                 }
 
-            } catch (StaleElementReferenceException ignored) {}
+            } catch (Exception e) {
+                System.out.println("Пропуск товара");
+            }
         }
 
+        System.out.println("Итого цен: " + prices.size());
         return prices;
     }
 
-    private String safeText(WebElement card, String... selectors) {
-        for (String sel : selectors) {
-            List<WebElement> els = card.findElements(By.cssSelector(sel));
-            if (!els.isEmpty()) {
-                return els.get(0).getText();
-            }
+    private String safeGetText(WebElement root, By... locators) {
+        for (By locator : locators) {
+            try {
+                return root.findElement(locator).getText();
+            } catch (Exception ignored) {}
         }
         return "";
-    }
-
-    private int parsePrice(String text) {
-        try {
-            return Integer.parseInt(text.replaceAll("[^0-9]", ""));
-        } catch (Exception e) {
-            return 0;
-        }
     }
 }
