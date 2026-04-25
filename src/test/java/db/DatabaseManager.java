@@ -4,90 +4,86 @@ import java.sql.*;
 
 public class DatabaseManager {
 
-    private static final String URL = "jdbc:sqlite:prices.db";
+    private static final String URL = "jdbc:sqlite:identifier.sqlite";
 
-    public static Connection connect() throws SQLException {
-        return DriverManager.getConnection(URL);
+    public static Connection connect() {
+        try {
+            return DriverManager.getConnection(URL);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void createTable() {
-        String sql = """
-                CREATE TABLE IF NOT EXISTS products (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT UNIQUE,
-                    price INTEGER
-                );
-                """;
+        String sql = "CREATE TABLE IF NOT EXISTS products (" +
+                "name TEXT PRIMARY KEY, " +
+                "price TEXT" +
+                ");";
 
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute(sql);
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public static Integer getPrice(String name) {
+    public static String getPrice(String name) {
         String sql = "SELECT price FROM products WHERE name = ?";
 
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, name);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setString(1, name);
+
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getInt("price");
+                return rs.getString("price");
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            return null;
 
-        return null;
-    }
-
-    public static void insertOrUpdate(String name, int price) {
-        Integer existingPrice = getPrice(name);
-
-        if (existingPrice == null) {
-            insert(name, price);
-        } else {
-            update(name, price);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void insert(String name, int price) {
+    public static void insert(String name, String price) {
         String sql = "INSERT INTO products(name, price) VALUES(?, ?)";
 
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, name);
-            pstmt.setInt(2, price);
-            pstmt.executeUpdate();
+            stmt.setString(1, name);
+            stmt.setString(2, price);
 
-            System.out.println("Добавлено в БД: " + name + " = " + price);
+            stmt.executeUpdate();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("INSERT: " + name + " -> " + price);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void update(String name, int price) {
+    public static void update(String name, String price) {
         String sql = "UPDATE products SET price = ? WHERE name = ?";
 
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, price);
-            pstmt.setString(2, name);
-            pstmt.executeUpdate();
+            stmt.setString(1, price);
+            stmt.setString(2, name);
 
-            System.out.println("Обновлено в БД: " + name + " = " + price);
+            stmt.executeUpdate();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("UPDATE: " + name + " -> " + price);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }

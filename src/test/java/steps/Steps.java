@@ -1,56 +1,69 @@
 package steps;
 
 import base.BaseTest;
+import db.DatabaseManager;
 import io.cucumber.java.en.*;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.junit.Assert;
+import pages.HomePage;
 import pages.SearchResultPage;
 
-import java.time.Duration;
 import java.util.List;
 
 public class Steps extends BaseTest {
 
-    private List<String> prices;
+    List<String[]> products;
 
     @Given("я открываю сайт {string}")
     public void openSite(String url) {
-        driver.get("https://allo.ua/ua/products/mobile/proizvoditel-apple/");
+        driver = getDriver();
+        driver.get(url);
     }
 
     @When("я ищу {string} и сохраняю цены первых {int} товаров")
-    public void searchAndPickPrices(String query, int count) {
+    public void search(String query, int count) {
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("div.product-card")
-        ));
+        HomePage homePage = new HomePage(driver);
+        homePage.search(query);
 
         SearchResultPage page = new SearchResultPage(driver);
-        prices = page.getFirstPrices(count);
+        products = page.getFirstProducts(count);
 
-        if (prices == null || prices.isEmpty()) {
-            throw new RuntimeException("Товары не найдены — проверь селекторы или загрузку страницы");
-        }
-
-
+        System.out.println("PRODUCTS SIZE: " + products.size());
     }
 
     @Then("я проверяю цены в БД: если модель есть - сверяю цену, если нет - записываю")
-    public void checkDb() {
+    public void checkDB() {
 
-        if (prices == null || prices.isEmpty()) {
-            throw new RuntimeException("Нет данных для проверки БД");
+        if (products == null || products.isEmpty()) {
+            throw new RuntimeException("Products not loaded");
         }
 
-        for (String item : prices) {
-            System.out.println("DB CHECK: " + item);
+        for (String[] product : products) {
 
+            String name = product[0];
+            String price = cleanPrice(product[1]);
 
+            String dbPrice = DatabaseManager.getPrice(name);
+
+            if (dbPrice == null) {
+                DatabaseManager.insert(name, price);
+                System.out.println("INSERT: " + name + " -> " + price);
+            } else {
+                String cleanDbPrice = cleanPrice(dbPrice);
+
+                System.out.println("COMPARE: " + name + " DB=" + cleanDbPrice + " SITE=" + price);
+
+                if (!cleanDbPrice.equals(price)) {
+                    DatabaseManager.update(name, price);
+                    System.out.println("UPDATED: " + name + " -> " + price);
+                }
+
+                Assert.assertEquals(price, cleanDbPrice);
+            }
         }
+    }
+
+    private String cleanPrice(String price) {
+        return price.replaceAll("[^0-9]", "");
     }
 }

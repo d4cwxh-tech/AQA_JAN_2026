@@ -2,26 +2,30 @@ package base;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 public class BaseTest {
 
-    public static WebDriver driver;
+    protected static WebDriver driver;
 
-    public static void initDriver() {
+    public void setUp() {
         if (driver == null) {
-            driver = new ChromeDriver();
-            driver.manage().window().maximize();
+            ChromeOptions options = new ChromeOptions();
+            options.addArguments("--remote-allow-origins=*");
+            options.addArguments("--disable-notifications");
+            options.addArguments("--start-maximized");
+            driver = new ChromeDriver(options);
         }
     }
 
-    public static WebDriver getDriver() {
-        return driver;
-    }
-
-    public static void quitDriver() {
+    public void tearDown() {
         if (driver != null) {
             driver.quit();
             driver = null;
         }
+    }
+
+    public WebDriver getDriver() {
+        return driver;
     }
 }

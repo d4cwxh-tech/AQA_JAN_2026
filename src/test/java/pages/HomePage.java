@@ -17,13 +17,11 @@ public class HomePage {
     }
 
     public void search(String text) {
-
         WebElement input = wait.until(
                 ExpectedConditions.elementToBeClickable(
                         By.cssSelector("input.search-form__input")
                 )
         );
-
         input.clear();
         input.sendKeys(text);
         input.sendKeys(Keys.ENTER);

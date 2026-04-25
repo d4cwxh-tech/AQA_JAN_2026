@@ -1,18 +1,20 @@
 package hooks;
 
 import base.BaseTest;
-import io.cucumber.java.Before;
+import db.DatabaseManager;
 import io.cucumber.java.After;
+import io.cucumber.java.Before;
 
-public class Hooks {
+public class Hooks extends BaseTest {
 
     @Before
-    public void setUp() {
-        BaseTest.initDriver();
+    public void setUpHook() {
+        setUp();
+        DatabaseManager.createTable();
     }
 
     @After
-    public void tearDown() {
-        BaseTest.quitDriver();
+    public void tearDownHook() {
+        tearDown();
     }
 }
